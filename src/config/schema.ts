@@ -13,17 +13,17 @@ const modelConfigSchema = z.object({
 });
 
 const defaultModels: Record<string, z.infer<typeof modelConfigSchema>> = {
-  'claude-sonnet-4-20250514': { provider: 'anthropic', label: 'Claude Sonnet 4' },
-  'claude-opus-4-20250514': { provider: 'anthropic', label: 'Claude Opus 4' },
-  'claude-haiku-4-20250414': { provider: 'anthropic', label: 'Claude Haiku 4' },
-  'claude-3-haiku-20240307': { provider: 'anthropic', label: 'Claude Haiku 3' },
-  'gpt-4o': { provider: 'openai', label: 'GPT-4o' },
-  'gpt-4o-mini': { provider: 'openai', label: 'GPT-4o Mini' },
-  'o3': { provider: 'openai', label: 'o3' },
-  'o4-mini': { provider: 'openai', label: 'o4 Mini' },
-  'llama3': { provider: 'ollama', label: 'Llama 3' },
-  'mistral': { provider: 'ollama', label: 'Mistral' },
-  'codellama': { provider: 'ollama', label: 'Code Llama' },
+  'claude-sonnet-4-20250514': { provider: 'anthropic', label: 'Claude Sonnet 4', maxTokens: 8192 },
+  'claude-opus-4-20250514': { provider: 'anthropic', label: 'Claude Opus 4', maxTokens: 8192 },
+  'claude-haiku-4-20250414': { provider: 'anthropic', label: 'Claude Haiku 4', maxTokens: 8192 },
+  'claude-3-haiku-20240307': { provider: 'anthropic', label: 'Claude Haiku 3', maxTokens: 4096 },
+  'gpt-4o': { provider: 'openai', label: 'GPT-4o', maxTokens: 16384 },
+  'gpt-4o-mini': { provider: 'openai', label: 'GPT-4o Mini', maxTokens: 16384 },
+  'o3': { provider: 'openai', label: 'o3', maxTokens: 16384 },
+  'o4-mini': { provider: 'openai', label: 'o4 Mini', maxTokens: 16384 },
+  'llama3': { provider: 'ollama', label: 'Llama 3', maxTokens: 4096 },
+  'mistral': { provider: 'ollama', label: 'Mistral', maxTokens: 4096 },
+  'codellama': { provider: 'ollama', label: 'Code Llama', maxTokens: 4096 },
 };
 
 export const configSchema = z.object({

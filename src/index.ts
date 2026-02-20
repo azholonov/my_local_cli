@@ -63,7 +63,7 @@ export async function startApp(options: StartOptions): Promise<void> {
   const agentLoop = new AgentLoop({
     provider,
     model,
-    maxTokens: config.maxTokens ?? DEFAULT_MAX_TOKENS,
+    maxTokens: providerRegistry.getModelEntry(model)?.maxTokens ?? config.maxTokens ?? DEFAULT_MAX_TOKENS,
     temperature: config.temperature ?? DEFAULT_TEMPERATURE,
     systemPrompt: SYSTEM_PROMPT,
     toolDefinitions: toolRegistry.getDefinitions(),

@@ -39,8 +39,11 @@ export class AgentLoop {
   }
 
   /** Update the model at runtime */
-  setModel(model: string): void {
+  setModel(model: string, maxTokens?: number): void {
     this.options.model = model;
+    if (maxTokens) {
+      this.options.maxTokens = maxTokens;
+    }
   }
 
   /** Update the provider at runtime */

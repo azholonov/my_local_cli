@@ -58,7 +58,8 @@ export function App({ agentLoop, model: initialModel, provider: initialProvider,
     provider: currentProvider,
     setModel: (newModel: string) => {
       setCurrentModel(newModel);
-      agentLoop.setModel(newModel);
+      const modelEntry = providerRegistry?.getModelEntry(newModel);
+      agentLoop.setModel(newModel, modelEntry?.maxTokens);
       // Try to switch provider if providerRegistry is available
       if (providerRegistry) {
         try {
