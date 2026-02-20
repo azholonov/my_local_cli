@@ -65,6 +65,26 @@ registerCommand({
 });
 
 registerCommand({
+  name: 'models',
+  description: 'List available models',
+  async execute(_args, context) {
+    const catalog = context.getModelCatalog();
+    const lines: string[] = ['Available models:', ''];
+    for (const [provider, models] of Object.entries(catalog)) {
+      lines.push(`  ${provider}:`);
+      for (const m of models) {
+        const current = m.id === context.model ? ' (active)' : '';
+        lines.push(`    ${m.id} - ${m.label}${current}`);
+      }
+      lines.push('');
+    }
+    lines.push('Switch with: /model <model-id>');
+    lines.push('Add models in: ~/.my_local_ai/config.json → "models"');
+    return lines.join('\n');
+  },
+});
+
+registerCommand({
   name: 'compact',
   description: 'Compress conversation history to save context',
   async execute(_args, context) {

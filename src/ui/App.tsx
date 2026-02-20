@@ -6,13 +6,15 @@ import { theme } from './theme.js';
 import { StreamingText } from './components/StreamingText.js';
 import { ToolCallDisplay } from './components/ToolCallDisplay.js';
 import { StatusBar } from './components/StatusBar.js';
+import { parseSlashCommand, getCommand } from '../commands/index.js';
+import type { CommandContext } from '../commands/types.js';
 import type { AgentLoop } from '../agent/loop.js';
-import type { AgentEvent } from '../agent/types.js';
+import type { ProviderRegistry } from '../providers/registry.js';
 import type { PermissionChecker } from '../permissions/index.js';
 import type { ToolRegistry } from '../tools/index.js';
 
 interface DisplayMessage {
-  role: 'user' | 'assistant' | 'tool';
+  role: 'user' | 'assistant' | 'system';
   content: string;
   toolCalls?: Array<{
     toolName: string;
@@ -26,16 +28,19 @@ interface AppProps {
   agentLoop: AgentLoop;
   model: string;
   provider: string;
+  providerRegistry?: ProviderRegistry;
   permissionChecker?: PermissionChecker;
   toolRegistry?: ToolRegistry;
 }
 
-export function App({ agentLoop, model, provider }: AppProps) {
+export function App({ agentLoop, model: initialModel, provider: initialProvider, providerRegistry }: AppProps) {
   const { exit } = useApp();
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [streamingText, setStreamingText] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+  const [currentModel, setCurrentModel] = useState(initialModel);
+  const [currentProvider, setCurrentProvider] = useState(initialProvider);
   const [activeToolCalls, setActiveToolCalls] = useState<
     Map<
       string,
@@ -48,28 +53,64 @@ export function App({ agentLoop, model, provider }: AppProps) {
     >
   >(new Map());
 
+  const commandContext: CommandContext = {
+    model: currentModel,
+    provider: currentProvider,
+    setModel: (newModel: string) => {
+      setCurrentModel(newModel);
+      agentLoop.setModel(newModel);
+      // Try to switch provider if providerRegistry is available
+      if (providerRegistry) {
+        try {
+          const newProvider = providerRegistry.getForModel(newModel);
+          agentLoop.setProvider(newProvider);
+          setCurrentProvider(newProvider.name);
+        } catch {
+          // Keep current provider if no match found
+        }
+      }
+    },
+    clearConversation: () => {
+      setMessages([]);
+      agentLoop.clearMessages();
+    },
+    compactConversation: async () => {
+      // TODO: wire ConversationCompressor here
+    },
+    getMessageCount: () => agentLoop.getMessages().length,
+    getModelCatalog: () => providerRegistry?.getModelCatalog() ?? {},
+  };
+
   const handleSubmit = useCallback(
     async (value: string) => {
       const trimmed = value.trim();
       if (!trimmed || isStreaming) return;
-
-      // Handle exit
-      if (trimmed === '/exit' || trimmed === '/quit') {
-        exit();
-        return;
-      }
-
-      // Handle clear
-      if (trimmed === '/clear') {
-        setMessages([]);
-        agentLoop.clearMessages();
-        setInput('');
-        return;
-      }
-
-      // Add user message to display
-      setMessages((prev) => [...prev, { role: 'user', content: trimmed }]);
       setInput('');
+
+      // Handle slash commands via the command registry
+      const parsed = parseSlashCommand(trimmed);
+      if (parsed) {
+        const cmd = getCommand(parsed.name);
+        if (cmd) {
+          const result = await cmd.execute(parsed.args, commandContext);
+
+          // Special exit token
+          if (result === '__EXIT__') {
+            exit();
+            return;
+          }
+
+          // Show command output as a system message
+          setMessages((prev) => [
+            ...prev,
+            { role: 'system', content: result },
+          ]);
+          return;
+        }
+      }
+
+      // Regular message — send to agent
+      setMessages((prev) => [...prev, { role: 'user', content: trimmed }]);
       setIsStreaming(true);
       setStreamingText('');
       setActiveToolCalls(new Map());
@@ -172,7 +213,7 @@ export function App({ agentLoop, model, provider }: AppProps) {
       setIsStreaming(false);
       setStreamingText('');
     },
-    [agentLoop, isStreaming, exit],
+    [agentLoop, isStreaming, exit, commandContext],
   );
 
   // Ctrl+C to exit
@@ -186,7 +227,7 @@ export function App({ agentLoop, model, provider }: AppProps) {
     <Box flexDirection="column" padding={1}>
       {/* Header */}
       <Box marginBottom={1}>
-        <StatusBar model={model} provider={provider} isStreaming={isStreaming} />
+        <StatusBar model={currentModel} provider={currentProvider} isStreaming={isStreaming} />
       </Box>
 
       {/* Message history */}
@@ -195,7 +236,9 @@ export function App({ agentLoop, model, provider }: AppProps) {
           <Text>
             {msg.role === 'user'
               ? theme.user('You: ')
-              : theme.assistant('AI: ')}
+              : msg.role === 'system'
+                ? theme.system('System: ')
+                : theme.assistant('AI: ')}
           </Text>
           {msg.content && <Text>{msg.content}</Text>}
           {msg.toolCalls?.map((tc, j) => (

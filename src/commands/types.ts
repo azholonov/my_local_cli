@@ -5,6 +5,7 @@ export interface CommandContext {
   clearConversation: () => void;
   compactConversation: () => Promise<void>;
   getMessageCount: () => number;
+  getModelCatalog: () => Record<string, Array<{ id: string; label: string }>>;
 }
 
 export interface SlashCommand {

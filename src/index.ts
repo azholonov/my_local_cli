@@ -96,6 +96,7 @@ export async function startApp(options: StartOptions): Promise<void> {
       agentLoop,
       model,
       provider: provider.name,
+      providerRegistry,
       permissionChecker,
       toolRegistry,
     }),
